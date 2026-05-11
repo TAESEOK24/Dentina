@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +12,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import axios, { isAxiosError } from 'axios';
+import { Ionicons } from '@expo/vector-icons';
 
 const COUNTDOWN_START = 5;
 
@@ -30,6 +32,8 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [countdown, setCountdown] = useState(COUNTDOWN_START);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [facing, setFacing] = useState<'back' | 'front'>('back');
+  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const hasCapturedRef = useRef(false);
   const router = useRouter();
@@ -79,17 +83,17 @@ export default function CameraScreen() {
         throw new Error('촬영 이미지 변환에 실패했습니다.');
       }
 
-      await analyzeImage(photo.base64);
+      setPreviewPhoto(photo.base64);
     } catch (error) {
       const message = error instanceof Error ? error.message : '사진 촬영 중 문제가 발생했습니다.';
       Alert.alert('촬영 실패', message);
       hasCapturedRef.current = false;
       setCountdown(COUNTDOWN_START);
     }
-  }, [analyzeImage]);
+  }, []);
 
   useEffect(() => {
-    if (!permission?.granted || isAnalyzing || hasCapturedRef.current) {
+    if (!permission?.granted || isAnalyzing || previewPhoto || hasCapturedRef.current) {
       return;
     }
 
@@ -103,7 +107,17 @@ export default function CameraScreen() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [countdown, isAnalyzing, permission?.granted, takePicture]);
+  }, [countdown, isAnalyzing, permission?.granted, previewPhoto, takePicture]);
+
+  const toggleCameraFacing = () => {
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+  };
+
+  const handleRetake = () => {
+    setPreviewPhoto(null);
+    setCountdown(COUNTDOWN_START);
+    hasCapturedRef.current = false;
+  };
 
   const handleCancel = () => {
     hasCapturedRef.current = true;
@@ -129,12 +143,53 @@ export default function CameraScreen() {
     );
   }
 
+  if (previewPhoto) {
+    return (
+      <View style={styles.previewContainer}>
+        <Image source={{ uri: `data:image/jpeg;base64,${previewPhoto}` }} style={styles.previewImage} />
+
+        <View style={styles.previewOverlay}>
+          <Text style={styles.previewTitle}>촬영 결과</Text>
+        </View>
+
+        <View style={styles.previewActions}>
+          {isAnalyzing ? (
+            <View style={styles.previewLoading}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={styles.previewLoadingText}>분석 중</Text>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.secondaryButton} onPress={handleRetake}>
+                <Text style={styles.secondaryButtonText}>다시 촬영</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.primaryButton} onPress={() => analyzeImage(previewPhoto)}>
+                <Text style={styles.primaryButtonText}>분석하기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.previewCancelButton} onPress={handleCancel}>
+                <Text style={styles.cancelText}>취소</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing="back">
+      <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
         <View style={styles.overlay}>
           <View style={styles.topArea}>
             <Text style={styles.readyText}>촬영 준비 완료!</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="카메라 전환"
+              style={styles.flipButton}
+              onPress={toggleCameraFacing}
+            >
+              <Ionicons name="camera-reverse" size={26} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
 
           <View style={styles.guideArea}>
@@ -196,12 +251,27 @@ const styles = StyleSheet.create({
   },
   topArea: {
     alignItems: 'center',
+    minHeight: 56,
+    justifyContent: 'center',
   },
   readyText: {
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '800',
     textAlign: 'center',
+  },
+  flipButton: {
+    position: 'absolute',
+    right: 0,
+    top: 4,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.38)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
   },
   guideArea: {
     alignItems: 'center',
@@ -357,5 +427,87 @@ const styles = StyleSheet.create({
   permissionCancelButton: {
     marginTop: 18,
     padding: 10,
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  previewImage: {
+    flex: 1,
+    resizeMode: 'contain',
+  },
+  previewOverlay: {
+    position: 'absolute',
+    top: 64,
+    left: 24,
+    right: 24,
+    alignItems: 'center',
+  },
+  previewTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  previewActions: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    bottom: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  previewLoading: {
+    minWidth: 148,
+    minHeight: 94,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.46)',
+  },
+  previewLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+    marginTop: 12,
+  },
+  primaryButton: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 26,
+    backgroundColor: '#3B5BFF',
+    paddingHorizontal: 28,
+    paddingVertical: 15,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: 'rgba(0, 0, 0, 0.36)',
+    paddingHorizontal: 28,
+    paddingVertical: 15,
+  },
+  secondaryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  previewCancelButton: {
+    minWidth: 148,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
 });
