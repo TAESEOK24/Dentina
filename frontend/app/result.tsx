@@ -1,6 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, useColorScheme } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Colors } from '@/constants/theme';
+import { Card } from '@/components/ui/Card';
+import { Typography } from '@/components/ui/Typography';
+import { Button } from '@/components/ui/Button';
 
 interface Area {
   position: string;
@@ -21,6 +25,8 @@ interface AnalyzeResult {
 export default function ResultScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const colorScheme = useColorScheme() ?? 'light';
+  const theme = Colors[colorScheme];
   
   let result: AnalyzeResult | null = null;
   try {
@@ -33,68 +39,61 @@ export default function ResultScreen() {
 
   if (!result) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>결과를 불러올 수 없습니다.</Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.replace('/')}>
-          <Text style={styles.buttonText}>홈으로</Text>
-        </TouchableOpacity>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Typography color="error" style={styles.errorText}>결과를 불러올 수 없습니다.</Typography>
+        <Button title="홈으로" onPress={() => router.replace('/')} style={{ marginHorizontal: 20 }} />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.scoreContainer}>
-        <Text style={styles.scoreTitle}>종합 점수</Text>
-        <Text style={styles.totalScore}>{result.totalScore}</Text>
-        <Text style={styles.scoreUnit}>/ 100</Text>
-      </View>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
+      <Card style={styles.scoreContainer}>
+        <Typography variant="h3" color="secondary" style={styles.scoreTitle}>종합 점수</Typography>
+        <Typography style={[styles.totalScore, { color: theme.primary }]}>{result.totalScore}</Typography>
+        <Typography color="secondary" variant="h3">/ 100</Typography>
+      </Card>
 
-      <View style={styles.detailsContainer}>
+      <Card style={styles.detailsContainer}>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>청결도</Text>
-          <Text style={styles.detailScore}>{result.cleanlinessScore}</Text>
+          <Typography>청결도</Typography>
+          <Typography weight="bold">{result.cleanlinessScore}</Typography>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>잇몸 건강</Text>
-          <Text style={styles.detailScore}>{result.gumsScore}</Text>
+          <Typography>잇몸 건강</Typography>
+          <Typography weight="bold">{result.gumsScore}</Typography>
         </View>
         <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>시린 지수</Text>
-          <Text style={styles.detailScore}>{result.sensitivityScore}</Text>
+          <Typography>시린 지수</Typography>
+          <Typography weight="bold">{result.sensitivityScore}</Typography>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>플라그 위험</Text>
-          <Text style={[styles.detailScore, result.plaqueRisk && styles.warningText]}>
+        <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+          <Typography>플라그 위험</Typography>
+          <Typography weight="bold" color={result.plaqueRisk ? 'error' : 'primary'}>
             {result.plaqueRisk ? '높음' : '낮음'}
-          </Text>
+          </Typography>
         </View>
-      </View>
+      </Card>
 
-      <View style={styles.recommendationContainer}>
-        <Text style={styles.sectionTitle}>AI 관리 조언</Text>
-        <Text style={styles.recommendationText}>{result.recommendation}</Text>
-      </View>
+      <Card style={[styles.recommendationContainer, { backgroundColor: '#EBF0FF' }]}>
+        <Typography variant="h3" style={styles.sectionTitle}>AI 관리 조언</Typography>
+        <Typography style={[styles.recommendationText, { color: theme.primary }]}>{result.recommendation}</Typography>
+      </Card>
 
       {result.areas && result.areas.length > 0 && (
-        <View style={styles.areasContainer}>
-          <Text style={styles.sectionTitle}>주의 부위</Text>
+        <Card style={styles.areasContainer}>
+          <Typography variant="h3" style={styles.sectionTitle}>주의 부위</Typography>
           {result.areas.map((area, index) => (
-            <View key={index} style={styles.areaItem}>
-              <Text style={styles.areaPosition}>{area.position}</Text>
-              <Text style={styles.areaIssue}>{area.issue} (점수: {area.score})</Text>
+            <View key={index} style={[styles.areaItem, index === result.areas.length - 1 && { borderBottomWidth: 0 }]}>
+              <Typography weight="bold">{area.position}</Typography>
+              <Typography color="error" variant="caption">{area.issue} (점수: {area.score})</Typography>
             </View>
           ))}
-        </View>
+        </Card>
       )}
 
-      <TouchableOpacity style={styles.button} onPress={() => router.replace('/camera')}>
-        <Text style={styles.buttonText}>다시 촬영하기</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={() => router.replace('/')}>
-        <Text style={styles.secondaryButtonText}>홈으로</Text>
-      </TouchableOpacity>
+      <Button title="다시 촬영하기" onPress={() => router.replace('/camera')} style={styles.actionButton} />
+      <Button title="홈으로" variant="outline" onPress={() => router.replace('/')} style={styles.actionButton} />
     </ScrollView>
   );
 }
@@ -102,133 +101,62 @@ export default function ResultScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   content: {
     padding: 20,
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 18,
-    color: '#ff3b30',
     marginBottom: 20,
     textAlign: 'center',
     marginTop: 50,
   },
   scoreContainer: {
     alignItems: 'center',
-    backgroundColor: '#fff',
     width: '100%',
-    padding: 30,
-    borderRadius: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
+    paddingVertical: 30,
   },
   scoreTitle: {
-    fontSize: 18,
-    color: '#666',
     marginBottom: 10,
   },
   totalScore: {
     fontSize: 64,
     fontWeight: 'bold',
-    color: '#007AFF',
-  },
-  scoreUnit: {
-    fontSize: 16,
-    color: '#999',
   },
   detailsContainer: {
     width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
     marginBottom: 20,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  detailLabel: {
-    fontSize: 16,
-    color: '#444',
-  },
-  detailScore: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#222',
-  },
-  warningText: {
-    color: '#ff3b30',
+    borderBottomColor: '#F0F0F0',
   },
   recommendationContainer: {
     width: '100%',
-    backgroundColor: '#e6f2ff',
-    borderRadius: 12,
-    padding: 20,
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 10,
-    color: '#333',
   },
   recommendationText: {
-    fontSize: 16,
     lineHeight: 24,
-    color: '#005bb5',
   },
   areasContainer: {
     width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
     marginBottom: 30,
   },
   areaItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  areaPosition: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-  },
-  areaIssue: {
-    fontSize: 14,
-    color: '#ff3b30',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    width: '100%',
-    paddingVertical: 15,
-    borderRadius: 8,
     alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  actionButton: {
     marginBottom: 12,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#007AFF',
-  },
-  secondaryButtonText: {
-    color: '#007AFF',
-    fontSize: 18,
-    fontWeight: '600',
   },
 });

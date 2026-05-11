@@ -100,7 +100,7 @@ export default function CameraScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6B8B" />
+          <ActivityIndicator size="large" color="#3B5BFF" />
           <Text style={styles.loadingText}>AI가 구강 상태를 분석 중입니다...</Text>
         </View>
       ) : previewPhoto ? (
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   button: {
-    backgroundColor: '#FF6B8B',
+    backgroundColor: '#3B5BFF',
     padding: 15,
     borderRadius: 8,
     alignSelf: 'center',
@@ -277,8 +277,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   analyzeButton: {
-    backgroundColor: '#FF6B8B',
-    shadowColor: '#FF6B8B',
+    backgroundColor: '#3B5BFF',
+    shadowColor: '#3B5BFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

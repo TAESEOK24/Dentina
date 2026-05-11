@@ -2,24 +2,29 @@ import { Tabs, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from 'react-native';
 
 export default function TabLayout() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme() ?? 'light';
+  const theme = Colors[colorScheme];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B8B', // Pink tone
-        tabBarInactiveTintColor: '#A0A0A0',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.tabIconDefault,
         headerShown: true,
         headerTitleAlign: 'center',
-        headerTintColor: '#333',
+        headerTintColor: theme.text,
         tabBarStyle: {
           paddingBottom: insets.bottom > 0 ? insets.bottom : 5,
           paddingTop: 5,
           height: 60 + (insets.bottom > 0 ? insets.bottom : 0),
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.surface,
+          borderTopColor: theme.border,
         },
       }}>
       <Tabs.Screen
@@ -87,11 +92,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FF6B8B', // Pink tone
+    backgroundColor: '#3B5BFF', // Primary Blue
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20, // Elevate it slightly above the tab bar
-    shadowColor: '#FF6B8B',
+    shadowColor: '#3B5BFF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

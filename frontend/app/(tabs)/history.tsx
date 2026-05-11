@@ -1,9 +1,14 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet, useColorScheme } from 'react-native';
+import { Colors } from '@/constants/theme';
+import { Typography } from '@/components/ui/Typography';
 
 export default function HistoryScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const theme = Colors[colorScheme];
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>분석 기록 화면 (준비중)</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <Typography color="secondary">분석 기록 화면 (준비중)</Typography>
     </View>
   );
 }
@@ -13,10 +18,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  text: {
-    fontSize: 18,
-    color: '#666',
   },
 });

@@ -1,44 +1,54 @@
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from 'react-native';
+import { Colors } from '@/constants/theme';
+import { Card } from '@/components/ui/Card';
+import { Typography } from '@/components/ui/Typography';
 
 export default function HomeScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const theme = Colors[colorScheme];
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.contentContainer}>
       {/* User Greeting */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>안녕하세요, 사용자님!</Text>
-          <Text style={styles.subGreeting}>오늘도 건강한 미소를 만들어봐요.</Text>
+          <Typography variant="h2">안녕하세요, 사용자님!</Typography>
+          <Typography color="secondary">오늘도 건강한 미소를 만들어봐요.</Typography>
         </View>
-        <View style={styles.avatarCircle}>
+        <View style={[styles.avatarCircle, { backgroundColor: '#D1C4E9' }]}>
           <Ionicons name="person" size={24} color="#fff" />
         </View>
       </View>
 
       {/* Main Score Card */}
-      <View style={styles.scoreCard}>
-        <Text style={styles.cardTitle}>구강 상태 분석</Text>
-        <Text style={styles.cardDate}>최근 검사: 오늘 오전 10:30</Text>
+      <Card>
+        <Typography variant="h3" style={styles.cardTitle}>구강 상태 분석</Typography>
+        <Typography variant="caption" color="secondary" style={styles.cardDate}>최근 검사: 오늘 오전 10:30</Typography>
         
-        <View style={styles.scoreCircle}>
-          <Text style={styles.scoreValue}>78<Text style={styles.scoreMax}>/100</Text></Text>
-          <Text style={styles.scoreChange}>지난주 대비 ▲ 12</Text>
+        <View style={styles.scoreCircleContainer}>
+          <View style={[styles.scoreCircle, { borderColor: '#FFECF0' }]}>
+            <Text style={[styles.scoreValue, { color: theme.accent }]}>78<Text style={styles.scoreMax}>/100</Text></Text>
+            <Typography variant="caption" color="accent" weight="bold" style={{ marginTop: 5 }}>지난주 대비 ▲ 12</Typography>
+          </View>
         </View>
-      </View>
+      </Card>
 
       {/* Quick Missions */}
       <View style={styles.missionSection}>
-        <Text style={styles.sectionTitle}>오늘의 관리 미션 (1/3)</Text>
-        <View style={styles.missionCard}>
+        <Typography variant="h3" style={styles.sectionTitle}>오늘의 관리 미션 (1/3)</Typography>
+        <Card style={styles.missionCardRow} noPadding>
           <View style={styles.missionIcon}>
-            <Ionicons name="water-outline" size={24} color="#FF6B8B" />
+            <Ionicons name="water-outline" size={24} color={theme.accent} />
           </View>
           <View style={styles.missionTextContainer}>
-            <Text style={styles.missionTitle}>치간칫솔로 꼼꼼히 관리하기</Text>
-            <Text style={styles.missionReward}>+10 포인트</Text>
+            <Typography weight="bold">치간칫솔로 꼼꼼히 관리하기</Typography>
+            <Typography variant="caption" color="accent">+10 포인트</Typography>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#ccc" />
-        </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.icon} />
+        </Card>
       </View>
     </ScrollView>
   );
@@ -47,7 +57,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
   },
   contentContainer: {
     padding: 20,
@@ -60,55 +69,27 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     marginTop: 10,
   },
-  greeting: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  subGreeting: {
-    fontSize: 14,
-    color: '#666',
-  },
   avatarCircle: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#D1C4E9', // Soft purple
     justifyContent: 'center',
     alignItems: 'center',
   },
-  scoreCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    marginBottom: 30,
-  },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    alignSelf: 'flex-start',
+    marginBottom: 4,
   },
   cardDate: {
-    fontSize: 12,
-    color: '#999',
-    alignSelf: 'flex-start',
-    marginTop: 4,
     marginBottom: 20,
+  },
+  scoreCircleContainer: {
+    alignItems: 'center',
   },
   scoreCircle: {
     width: 160,
     height: 160,
     borderRadius: 80,
     borderWidth: 8,
-    borderColor: '#FFECF0',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
@@ -116,38 +97,22 @@ const styles = StyleSheet.create({
   scoreValue: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#FF6B8B', // Pink
   },
   scoreMax: {
     fontSize: 20,
     color: '#999',
   },
-  scoreChange: {
-    fontSize: 14,
-    color: '#FF6B8B',
-    fontWeight: '600',
-    marginTop: 5,
-  },
   missionSection: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
     marginBottom: 15,
   },
-  missionCard: {
+  missionCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    marginBottom: 0,
   },
   missionIcon: {
     width: 40,
@@ -160,16 +125,5 @@ const styles = StyleSheet.create({
   },
   missionTextContainer: {
     flex: 1,
-  },
-  missionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  missionReward: {
-    fontSize: 13,
-    color: '#FF6B8B',
-    fontWeight: '500',
   },
 });
