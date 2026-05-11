@@ -29,8 +29,8 @@ export default function HomeScreen() {
         <Typography variant="caption" color="secondary" style={styles.cardDate}>최근 검사: 오늘 오전 10:30</Typography>
         
         <View style={styles.scoreCircleContainer}>
-          <View style={[styles.scoreCircle, { borderColor: '#FFECF0' }]}>
-            <Text style={[styles.scoreValue, { color: theme.accent }]}>78<Text style={styles.scoreMax}>/100</Text></Text>
+          <View style={[styles.scoreCircle, { borderColor: theme.primary, backgroundColor: '#EEF2FF' }]}>
+            <Text style={[styles.scoreValue, { color: theme.primary }]}>78<Text style={styles.scoreMax}>/100</Text></Text>
             <Typography variant="caption" color="accent" weight="bold" style={{ marginTop: 5 }}>지난주 대비 ▲ 12</Typography>
           </View>
         </View>
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   scoreMax: {
     fontSize: 20,
-    color: '#999',
+    color: '#6B7280',
   },
   missionSection: {
     marginBottom: 20,
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFF0F3',
+    backgroundColor: '#FFE4EE',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
