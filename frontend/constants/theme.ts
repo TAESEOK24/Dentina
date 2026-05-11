@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 
 const primaryColor = '#3B5BFF';
 const accentColor = '#FF6B9D';
-const backgroundColor = '#F5F7FF';
+const backgroundColor = '#FFFFFF';
 const textPrimaryColor = '#1A1A2E';
 const borderRadiusValue = 16;
 

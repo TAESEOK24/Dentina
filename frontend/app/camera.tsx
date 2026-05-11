@@ -3,11 +3,22 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Ima
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import axios from 'axios';
+import Constants from 'expo-constants';
+import axios, { isAxiosError } from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 
 // 로컬 환경 백엔드 주소 (개발자 IP)
-const API_URL = 'http://192.168.55.141:3000/api/analyze';
+const getApiUrl = () => {
+  const manifest = Constants.manifest as { debuggerHost?: string } | null;
+  const expoConfig = Constants.expoConfig as { hostUri?: string } | null;
+  const manifest2 = Constants.manifest2 as { extra?: { expoClient?: { hostUri?: string } } } | null;
+  const hostUri = expoConfig?.hostUri || manifest2?.extra?.expoClient?.hostUri || manifest?.debuggerHost;
+  const host = hostUri?.split(':')[0];
+
+  return `http://${host || '192.168.1.6'}:3000/api/analyze`;
+};
+
+const API_URL = getApiUrl();
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -40,6 +51,7 @@ export default function CameraScreen() {
   const analyzeImage = async (base64: string) => {
     setLoading(true);
     try {
+      console.log('Analyze API URL:', API_URL);
       const response = await axios.post(API_URL, {
         imageBase64: base64,
       });
@@ -53,7 +65,10 @@ export default function CameraScreen() {
       });
     } catch (error) {
       console.error('API Error:', error);
-      Alert.alert('분석 실패', '이미지 분석 중 오류가 발생했습니다.');
+      const detail = isAxiosError(error)
+        ? error.response?.data?.detail || error.response?.data?.error || error.message
+        : '이미지 분석 중 오류가 발생했습니다.';
+      Alert.alert('분석 실패', detail);
     } finally {
       setLoading(false);
     }

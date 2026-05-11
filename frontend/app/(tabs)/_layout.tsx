@@ -51,7 +51,7 @@ export default function TabLayout() {
           title: '촬영',
           tabBarIcon: ({ color, size }) => (
             <View style={styles.cameraButton}>
-              <Ionicons name="camera" size={30} color="#FFF" />
+              <Ionicons name="camera" size={34} color="#FFF" />
             </View>
           ),
           tabBarLabel: () => null, // Hide label for center button
@@ -89,14 +89,14 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   cameraButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#3B5BFF', // Primary Blue
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FF6B9D',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20, // Elevate it slightly above the tab bar
-    shadowColor: '#3B5BFF',
+    marginBottom: 24, // Elevate it slightly above the tab bar
+    shadowColor: '#FF6B9D',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

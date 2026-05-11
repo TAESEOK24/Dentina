@@ -13,8 +13,9 @@ router.post('/', async (req, res) => {
     const result = await gptService.analyzeImage(imageBase64);
     res.json(result);
   } catch (error) {
-    console.error('Error in /api/analyze:', error);
-    res.status(500).json({ error: 'Failed to analyze image' });
+    const message = error instanceof Error ? error.message : 'Failed to analyze image';
+    console.error('Error in /api/analyze:', message);
+    res.status(500).json({ error: 'Failed to analyze image', detail: message });
   }
 });
 
