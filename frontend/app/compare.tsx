@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { StackedBarChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,8 +19,17 @@ const comparisonItems = [
   { label: '구강 청결도', previous: 70, improvement: 20 },
 ] as const;
 
+const bottomTabs = [
+  { label: '구강 분석', icon: 'analytics-outline', route: '/' },
+  { label: '알림 기간', icon: 'notifications-outline', route: '/history' },
+  { label: '구강 맵', icon: 'camera', route: '/camera' },
+  { label: '동영상 관리', icon: 'play-circle-outline', route: '/mission' },
+  { label: '리포트', icon: 'document-text-outline', route: '/profile' },
+] as const;
+
 export default function CompareScreen() {
   const [activeDate, setActiveDate] = useState<'current' | 'previous'>('current');
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const chartWidth = Math.min(width - 40, 430);
@@ -37,13 +47,30 @@ export default function CompareScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 28 }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>비교 분석</Text>
+    <View style={styles.container}>
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 14) + 8 }]}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="뒤로가기"
+          activeOpacity={0.74}
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="#1A1A2E" />
+        </TouchableOpacity>
+        <Text style={styles.topTitle}>구강 상태 분석</Text>
+        <View style={styles.topSpacer} />
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, 16) + 92 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
         <View style={styles.dateToggle} accessibilityRole="tablist">
           <TouchableOpacity
             accessibilityRole="tab"
@@ -150,7 +177,45 @@ export default function CompareScreen() {
           <Text style={styles.summaryText}>꾸준한 관리로 더 건강한 구강을 유지해요.</Text>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+        {bottomTabs.map((tab, index) => {
+          const active = index === 0;
+          const center = index === 2;
+
+          return (
+            <TouchableOpacity
+              key={tab.label}
+              activeOpacity={0.78}
+              style={styles.bottomItem}
+              onPress={() => {
+                if (tab.route === '/camera') {
+                  router.push('/camera');
+                  return;
+                }
+
+                router.replace(tab.route);
+              }}
+            >
+              <View style={[styles.bottomIconWrap, center && styles.bottomCenterIcon]}>
+                <Ionicons
+                  name={tab.icon}
+                  size={center ? 34 : 24}
+                  color={center ? '#FFFFFF' : active ? Colors.light.primary : '#9CA3AF'}
+                />
+              </View>
+              <Text
+                style={[styles.bottomLabel, active && styles.bottomLabelActive, center && styles.bottomCenterLabel]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -159,18 +224,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F9FC',
   },
+  scroll: {
+    flex: 1,
+  },
+  topBar: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+    backgroundColor: '#F7F9FC',
+  },
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topTitle: {
+    flex: 1,
+    color: '#1A1A2E',
+    fontSize: 17,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  topSpacer: {
+    width: 42,
+    height: 42,
+  },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 18,
+    paddingTop: 8,
   },
   header: {
-    gap: 14,
     marginBottom: 16,
-  },
-  title: {
-    color: '#1A1A2E',
-    fontSize: 24,
-    fontWeight: '900',
   },
   dateToggle: {
     minHeight: 52,
@@ -379,5 +468,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
+  },
+  bottomNav: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-around',
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#EEF0F5',
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  bottomItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  bottomIconWrap: {
+    width: 34,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomCenterIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FF6B9D',
+    marginTop: -34,
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  bottomLabel: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontWeight: '800',
+    maxWidth: 74,
+  },
+  bottomLabelActive: {
+    color: Colors.light.primary,
+  },
+  bottomCenterLabel: {
+    marginTop: -4,
   },
 });

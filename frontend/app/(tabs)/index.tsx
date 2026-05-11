@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const SCORE = 78;
 const DATE = '2024.05.25';
@@ -57,6 +58,8 @@ function ToothIcon({ tooth }: { tooth: Tooth }) {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
@@ -110,6 +113,15 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
+
+      <TouchableOpacity
+        activeOpacity={0.84}
+        style={styles.compareButton}
+        onPress={() => router.push('/compare')}
+      >
+        <Ionicons name="analytics-outline" size={20} color="#FFFFFF" />
+        <Text style={styles.compareButtonText}>비교 분석 보기</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -316,5 +328,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 3,
+  },
+  compareButton: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 18,
+    borderRadius: 18,
+    backgroundColor: SCORE_COLOR,
+    shadowColor: SCORE_COLOR,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  compareButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
   },
 });

@@ -9,7 +9,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal', headerShown: false }} />
         <Stack.Screen name="result" options={{ title: '분석 결과', headerBackVisible: false }} />
-        <Stack.Screen name="compare" options={{ title: '비교 분석' }} />
+        <Stack.Screen name="compare" options={{ headerShown: false }} />
       </Stack>
     </>
   );
