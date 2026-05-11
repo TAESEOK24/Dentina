@@ -25,7 +25,7 @@ function parseImageData(base64Image) {
 }
 
 function extractJson(text) {
-  const trimmed = text.trim();
+  const trimmed = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
 
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     return JSON.parse(trimmed);
@@ -39,12 +39,48 @@ function extractJson(text) {
   return JSON.parse(match[0]);
 }
 
+function normalizeAnalysisResult(result) {
+  return {
+    totalScore: Number.isFinite(result?.totalScore) ? result.totalScore : 78,
+    cleanlinessScore: Number.isFinite(result?.cleanlinessScore) ? result.cleanlinessScore : 78,
+    gumsScore: Number.isFinite(result?.gumsScore) ? result.gumsScore : 78,
+    sensitivityScore: Number.isFinite(result?.sensitivityScore) ? result.sensitivityScore : 78,
+    plaqueRisk: Boolean(result?.plaqueRisk),
+    recommendation:
+      typeof result?.recommendation === 'string' && result.recommendation.trim()
+        ? result.recommendation
+        : '사진이 흐리거나 구강 영역이 명확하지 않습니다. 밝은 곳에서 치아가 잘 보이도록 다시 촬영해 주세요.',
+    areas: Array.isArray(result?.areas)
+      ? result.areas.map((area) => ({
+          position: typeof area?.position === 'string' ? area.position : '확인 필요 부위',
+          score: Number.isFinite(area?.score) ? area.score : 78,
+          issue: typeof area?.issue === 'string' ? area.issue : '상세 확인이 필요합니다.',
+        }))
+      : [],
+  };
+}
+
+function fallbackAnalysisResult(rawText) {
+  console.warn('Gemini returned non-JSON response:', rawText);
+
+  return {
+    totalScore: 78,
+    cleanlinessScore: 78,
+    gumsScore: 78,
+    sensitivityScore: 78,
+    plaqueRisk: false,
+    recommendation: 'AI 응답 형식이 일정하지 않아 기본 점수로 표시합니다. 치아가 잘 보이도록 다시 촬영하면 더 정확한 분석이 가능합니다.',
+    areas: [],
+  };
+}
+
 async function analyzeImage(base64Image) {
   const { mimeType, data } = parseImageData(base64Image);
 
-  const prompt = `You are an oral health analysis assistant.
-Analyze the uploaded teeth image and respond only with valid JSON.
-Do not include markdown, explanations, or extra text.
+  const prompt = `You are an oral health screening assistant, not a dentist.
+Analyze only visible, non-diagnostic visual cues in the uploaded mouth or teeth image.
+Return only JSON that matches the schema. Do not include markdown, apologies, safety disclaimers, or extra text.
+If the image is unclear, still return JSON with conservative scores and Korean guidance to retake a clearer photo.
 Write recommendation and area issue text in Korean.
 
 {
@@ -84,6 +120,38 @@ Write recommendation and area issue text in Korean.
         ],
         generationConfig: {
           responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              totalScore: { type: 'NUMBER' },
+              cleanlinessScore: { type: 'NUMBER' },
+              gumsScore: { type: 'NUMBER' },
+              sensitivityScore: { type: 'NUMBER' },
+              plaqueRisk: { type: 'BOOLEAN' },
+              recommendation: { type: 'STRING' },
+              areas: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    position: { type: 'STRING' },
+                    score: { type: 'NUMBER' },
+                    issue: { type: 'STRING' },
+                  },
+                  required: ['position', 'score', 'issue'],
+                },
+              },
+            },
+            required: [
+              'totalScore',
+              'cleanlinessScore',
+              'gumsScore',
+              'sensitivityScore',
+              'plaqueRisk',
+              'recommendation',
+              'areas',
+            ],
+          },
           temperature: 0.2,
           maxOutputTokens: 1000,
         },
@@ -104,7 +172,11 @@ Write recommendation and area issue text in Korean.
     throw new Error('Gemini API returned an empty response.');
   }
 
-  return extractJson(content);
+  try {
+    return normalizeAnalysisResult(extractJson(content));
+  } catch (error) {
+    return fallbackAnalysisResult(content);
+  }
 }
 
 module.exports = {

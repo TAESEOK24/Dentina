@@ -64,10 +64,10 @@ export default function CameraScreen() {
         params: { resultData: JSON.stringify(result) }
       });
     } catch (error) {
-      console.error('API Error:', error);
       const detail = isAxiosError(error)
         ? error.response?.data?.detail || error.response?.data?.error || error.message
         : '이미지 분석 중 오류가 발생했습니다.';
+      console.error('API Error:', detail);
       Alert.alert('분석 실패', detail);
     } finally {
       setLoading(false);

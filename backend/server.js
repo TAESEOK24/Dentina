@@ -12,6 +12,14 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+app.get('/health', (req, res) => {
+  res.json({
+    ok: true,
+    geminiKeyLoaded: Boolean(process.env.GEMINI_API_KEY),
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  });
+});
+
 app.use('/api/analyze', analyzeRoute);
 
 app.listen(PORT, '0.0.0.0', () => {
