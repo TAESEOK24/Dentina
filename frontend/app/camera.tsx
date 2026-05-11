@@ -1,13 +1,19 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import axios, { isAxiosError } from 'axios';
-import { Ionicons } from '@expo/vector-icons';
 
-// 로컬 환경 백엔드 주소 (개발자 IP)
+const COUNTDOWN_START = 5;
+
 const getApiUrl = () => {
   const manifest = Constants.manifest as { debuggerHost?: string } | null;
   const expoConfig = Constants.expoConfig as { hostUri?: string } | null;
@@ -22,12 +28,87 @@ const API_URL = getApiUrl();
 
 export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
-  const [loading, setLoading] = useState(false);
-  const [facing, setFacing] = useState<'back' | 'front'>('back');
-  const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
-  
+  const [countdown, setCountdown] = useState(COUNTDOWN_START);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const cameraRef = useRef<CameraView>(null);
+  const hasCapturedRef = useRef(false);
   const router = useRouter();
+
+  const analyzeImage = useCallback(
+    async (base64: string) => {
+      setIsAnalyzing(true);
+
+      try {
+        const response = await axios.post(API_URL, {
+          imageBase64: base64,
+        });
+
+        router.replace({
+          pathname: '/result',
+          params: { resultData: JSON.stringify(response.data) },
+        });
+      } catch (error) {
+        const detail = isAxiosError(error)
+          ? error.response?.data?.detail || error.response?.data?.error || error.message
+          : '이미지 분석 중 오류가 발생했습니다.';
+
+        Alert.alert('분석 실패', detail);
+        hasCapturedRef.current = false;
+        setCountdown(COUNTDOWN_START);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    [router],
+  );
+
+  const takePicture = useCallback(async () => {
+    if (!cameraRef.current || hasCapturedRef.current) {
+      return;
+    }
+
+    hasCapturedRef.current = true;
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        base64: true,
+        quality: 0.7,
+      });
+
+      if (!photo?.base64) {
+        throw new Error('촬영 이미지 변환에 실패했습니다.');
+      }
+
+      await analyzeImage(photo.base64);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '사진 촬영 중 문제가 발생했습니다.';
+      Alert.alert('촬영 실패', message);
+      hasCapturedRef.current = false;
+      setCountdown(COUNTDOWN_START);
+    }
+  }, [analyzeImage]);
+
+  useEffect(() => {
+    if (!permission?.granted || isAnalyzing || hasCapturedRef.current) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (countdown <= 1) {
+        takePicture();
+        return;
+      }
+
+      setCountdown((current) => current - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown, isAnalyzing, permission?.granted, takePicture]);
+
+  const handleCancel = () => {
+    hasCapturedRef.current = true;
+    router.replace('/');
+  };
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -35,139 +116,64 @@ export default function CameraScreen() {
 
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.text}>카메라 사용 권한이 필요합니다.</Text>
-        <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>권한 요청</Text>
+      <View style={styles.permissionContainer}>
+        <Text style={styles.permissionTitle}>카메라 권한이 필요합니다</Text>
+        <Text style={styles.permissionDescription}>구강 촬영을 위해 카메라 접근을 허용해주세요.</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>권한 요청</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.permissionCancelButton} onPress={handleCancel}>
+          <Text style={styles.cancelText}>취소</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const toggleCameraFacing = () => {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
-  };
-
-  const analyzeImage = async (base64: string) => {
-    setLoading(true);
-    try {
-      console.log('Analyze API URL:', API_URL);
-      const response = await axios.post(API_URL, {
-        imageBase64: base64,
-      });
-      
-      const result = response.data;
-      
-      // 결과 화면으로 데이터 전달
-      router.replace({
-        pathname: '/result',
-        params: { resultData: JSON.stringify(result) }
-      });
-    } catch (error) {
-      const detail = isAxiosError(error)
-        ? error.response?.data?.detail || error.response?.data?.error || error.message
-        : '이미지 분석 중 오류가 발생했습니다.';
-      console.error('API Error:', detail);
-      Alert.alert('분석 실패', detail);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const takePicture = async () => {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          base64: true,
-          quality: 0.5,
-        });
-        
-        if (photo && photo.base64) {
-          setPreviewPhoto(photo.base64); // 사진 촬영 후 미리보기 상태로 설정
-        }
-      } catch (error) {
-        Alert.alert('촬영 실패', '사진 촬영 중 문제가 발생했습니다.');
-      }
-    }
-  };
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.5,
-      base64: true,
-    });
-
-    if (!result.canceled && result.assets[0].base64) {
-      setPreviewPhoto(result.assets[0].base64); // 갤러리 선택 후 미리보기 상태로 설정
-    }
-  };
-
   return (
     <View style={styles.container}>
-      {/* 닫기 버튼 (모달용) */}
-      {!previewPhoto && !loading && (
-        <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-          <Ionicons name="close" size={32} color="#fff" />
-        </TouchableOpacity>
-      )}
+      <CameraView ref={cameraRef} style={styles.camera} facing="back">
+        <View style={styles.overlay}>
+          <View style={styles.topArea}>
+            <Text style={styles.readyText}>촬영 준비 완료!</Text>
+          </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3B5BFF" />
-          <Text style={styles.loadingText}>AI가 구강 상태를 분석 중입니다...</Text>
-        </View>
-      ) : previewPhoto ? (
-        // 미리보기 화면
-        <View style={styles.previewContainer}>
-          <Image source={{ uri: `data:image/jpeg;base64,${previewPhoto}` }} style={styles.previewImage} />
-          
-          <View style={styles.previewActions}>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.retakeButton]} 
-              onPress={() => setPreviewPhoto(null)}
+          <View style={styles.guideArea}>
+            <View style={styles.guideFrame}>
+              <View style={[styles.corner, styles.cornerTopLeft]} />
+              <View style={[styles.corner, styles.cornerTopRight]} />
+              <View style={[styles.corner, styles.cornerBottomLeft]} />
+              <View style={[styles.corner, styles.cornerBottomRight]} />
+              <View style={styles.deviceBody}>
+                <View style={styles.deviceLens} />
+                <View style={styles.deviceHandle} />
+              </View>
+              <Text style={styles.guideText}>OralScope</Text>
+            </View>
+          </View>
+
+          <View style={styles.bottomArea}>
+            <View style={styles.countdownBox}>
+              {isAnalyzing ? (
+                <>
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                  <Text style={styles.analyzingText}>분석 중</Text>
+                </>
+              ) : (
+                <Text style={styles.countdownText}>{countdown}</Text>
+              )}
+            </View>
+
+            <TouchableOpacity
+              accessibilityRole="button"
+              disabled={isAnalyzing}
+              style={[styles.cancelButton, isAnalyzing && styles.disabledButton]}
+              onPress={handleCancel}
             >
-              <Ionicons name="refresh" size={24} color="#333" style={{marginRight: 8}} />
-              <Text style={styles.retakeText}>다시 찍기</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.analyzeButton]} 
-              onPress={() => analyzeImage(previewPhoto)}
-            >
-              <Ionicons name="sparkles" size={24} color="#fff" style={{marginRight: 8}} />
-              <Text style={styles.analyzeText}>이 사진으로 AI 분석</Text>
+              <Text style={styles.cancelText}>취소</Text>
             </TouchableOpacity>
           </View>
         </View>
-      ) : (
-        // 카메라 화면
-        <CameraView style={styles.camera} ref={cameraRef} facing={facing}>
-          {/* 상단 컨트롤 영역 */}
-          <View style={styles.topControls}>
-            <TouchableOpacity style={styles.flipButton} onPress={toggleCameraFacing}>
-              <Ionicons name="camera-reverse" size={28} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          {/* 하단 컨트롤 영역 */}
-          <View style={styles.bottomControls}>
-            {/* 왼쪽: 갤러리 */}
-            <TouchableOpacity style={styles.sideButton} onPress={pickImage}>
-              <Ionicons name="images" size={32} color="#fff" />
-            </TouchableOpacity>
-
-            {/* 중앙: 촬영 버튼 */}
-            <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
-              <View style={styles.captureInner} />
-            </TouchableOpacity>
-            
-            {/* 오른쪽: 빈 공간 (균형을 위해) */}
-            <View style={styles.sideButton} />
-          </View>
-        </CameraView>
-      )}
+      </CameraView>
     </View>
   );
 }
@@ -175,133 +181,181 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-  },
-  text: {
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    padding: 10,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
+    backgroundColor: '#000000',
   },
   camera: {
     flex: 1,
+  },
+  overlay: {
+    flex: 1,
     justifyContent: 'space-between',
+    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+    paddingHorizontal: 24,
+    paddingBottom: 42,
+    paddingTop: 64,
   },
-  topControls: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingTop: 50,
-    paddingRight: 20,
-  },
-  flipButton: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 12,
-    borderRadius: 25,
-  },
-  bottomControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  topArea: {
     alignItems: 'center',
-    paddingBottom: 50,
-    paddingHorizontal: 20,
   },
-  sideButton: {
-    width: 60,
-    height: 60,
+  readyText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  guideArea: {
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  guideFrame: {
+    width: 260,
+    height: 260,
+    alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 130,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
+  },
+  corner: {
+    position: 'absolute',
+    width: 46,
+    height: 46,
+    borderColor: '#FFFFFF',
+  },
+  cornerTopLeft: {
+    left: 20,
+    top: 20,
+    borderLeftWidth: 4,
+    borderTopWidth: 4,
+    borderTopLeftRadius: 18,
+  },
+  cornerTopRight: {
+    right: 20,
+    top: 20,
+    borderRightWidth: 4,
+    borderTopWidth: 4,
+    borderTopRightRadius: 18,
+  },
+  cornerBottomLeft: {
+    left: 20,
+    bottom: 20,
+    borderLeftWidth: 4,
+    borderBottomWidth: 4,
+    borderBottomLeftRadius: 18,
+  },
+  cornerBottomRight: {
+    right: 20,
+    bottom: 20,
+    borderRightWidth: 4,
+    borderBottomWidth: 4,
+    borderBottomRightRadius: 18,
+  },
+  deviceBody: {
+    width: 108,
+    height: 150,
     alignItems: 'center',
   },
-  captureInner: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    backgroundColor: '#fff',
+  deviceLens: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 8,
+    borderColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'rgba(59, 91, 255, 0.24)',
   },
-  button: {
+  deviceHandle: {
+    width: 38,
+    height: 72,
+    marginTop: -8,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+  },
+  guideText: {
+    position: 'absolute',
+    bottom: 42,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  bottomArea: {
+    alignItems: 'center',
+  },
+  countdownBox: {
+    width: 132,
+    height: 132,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+  },
+  countdownText: {
+    color: '#FFFFFF',
+    fontSize: 88,
+    fontWeight: '900',
+    lineHeight: 102,
+    textAlign: 'center',
+  },
+  analyzingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 14,
+  },
+  cancelButton: {
+    minWidth: 148,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.72)',
+    backgroundColor: 'rgba(0, 0, 0, 0.32)',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+  },
+  disabledButton: {
+    opacity: 0.45,
+  },
+  cancelText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  permissionContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 28,
+  },
+  permissionTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  permissionDescription: {
+    color: 'rgba(255, 255, 255, 0.72)',
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 26,
+    textAlign: 'center',
+  },
+  permissionButton: {
+    minWidth: 160,
+    alignItems: 'center',
+    borderRadius: 26,
     backgroundColor: '#3B5BFF',
-    padding: 15,
-    borderRadius: 8,
-    alignSelf: 'center',
+    paddingHorizontal: 28,
+    paddingVertical: 14,
   },
-  buttonText: {
-    color: '#fff',
+  permissionButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
-  loadingText: {
-    color: '#fff',
-    marginTop: 20,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  // 미리보기 화면 스타일
-  previewContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  previewImage: {
-    flex: 1,
-    resizeMode: 'contain',
-  },
-  previewActions: {
-    flexDirection: 'row',
-    padding: 20,
-    paddingBottom: 40,
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginHorizontal: 8,
-  },
-  retakeButton: {
-    backgroundColor: '#F0F0F0',
-  },
-  retakeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  analyzeButton: {
-    backgroundColor: '#3B5BFF',
-    shadowColor: '#3B5BFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  analyzeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+  permissionCancelButton: {
+    marginTop: 18,
+    padding: 10,
   },
 });
