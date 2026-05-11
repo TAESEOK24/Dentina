@@ -32,7 +32,7 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [countdown, setCountdown] = useState(COUNTDOWN_START);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [facing, setFacing] = useState<'back' | 'front'>('back');
+  const [facing, setFacing] = useState<'back' | 'front'>('front');
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const hasCapturedRef = useRef(false);
@@ -76,7 +76,7 @@ export default function CameraScreen() {
     try {
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
-        quality: 0.7,
+        quality: 1,
       });
 
       if (!photo?.base64) {
@@ -150,6 +150,7 @@ export default function CameraScreen() {
 
         <View style={styles.previewOverlay}>
           <Text style={styles.previewTitle}>촬영 결과</Text>
+          <Text style={styles.previewHint}>치아가 흐리거나 어두우면 다시 촬영해주세요</Text>
         </View>
 
         <View style={styles.previewActions}>
@@ -203,6 +204,7 @@ export default function CameraScreen() {
                 <View style={styles.deviceHandle} />
               </View>
               <Text style={styles.guideText}>OralScope</Text>
+              <Text style={styles.guideHint}>밝은 곳에서 치아를 선명하게 맞춰주세요</Text>
             </View>
           </View>
 
@@ -343,10 +345,17 @@ const styles = StyleSheet.create({
   },
   guideText: {
     position: 'absolute',
-    bottom: 42,
+    bottom: 54,
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+  },
+  guideHint: {
+    position: 'absolute',
+    bottom: 30,
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 13,
+    fontWeight: '700',
   },
   bottomArea: {
     alignItems: 'center',
@@ -447,6 +456,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '800',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  previewHint: {
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 8,
+    textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
