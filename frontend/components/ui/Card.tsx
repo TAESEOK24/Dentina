@@ -31,10 +31,10 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: Metrics.borderRadius,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
     marginBottom: Metrics.spacing.lg,
     overflow: 'hidden', // to ensure inner content respects border radius
   },

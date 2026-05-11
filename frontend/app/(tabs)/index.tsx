@@ -1,54 +1,114 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from 'react-native';
-import { Colors } from '@/constants/theme';
-import { Card } from '@/components/ui/Card';
-import { Typography } from '@/components/ui/Typography';
+
+const SCORE = 78;
+const DATE = '2024.05.25';
+const RISK_COLOR = '#FF6B9D';
+const SCORE_COLOR = '#3B5BFF';
+
+type Tooth = {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  risk?: boolean;
+};
+
+const upperTeeth: Tooth[] = [
+  { id: 'u1', label: '상악 좌측 4', x: 34, y: 38 },
+  { id: 'u2', label: '상악 좌측 3', x: 54, y: 20 },
+  { id: 'u3', label: '상악 좌측 2', x: 80, y: 8, risk: true },
+  { id: 'u4', label: '상악 좌측 1', x: 108, y: 2, risk: true },
+  { id: 'u5', label: '상악 우측 1', x: 138, y: 2 },
+  { id: 'u6', label: '상악 우측 2', x: 166, y: 8 },
+  { id: 'u7', label: '상악 우측 3', x: 192, y: 20 },
+  { id: 'u8', label: '상악 우측 4', x: 212, y: 38 },
+];
+
+const lowerTeeth: Tooth[] = [
+  { id: 'l1', label: '하악 좌측 4', x: 34, y: 192 },
+  { id: 'l2', label: '하악 좌측 3', x: 54, y: 214 },
+  { id: 'l3', label: '하악 좌측 2', x: 80, y: 228 },
+  { id: 'l4', label: '하악 좌측 1', x: 108, y: 236 },
+  { id: 'l5', label: '하악 우측 1', x: 138, y: 236 },
+  { id: 'l6', label: '하악 우측 2', x: 166, y: 228 },
+  { id: 'l7', label: '하악 우측 3', x: 192, y: 214 },
+  { id: 'l8', label: '하악 우측 4', x: 212, y: 192 },
+];
+
+function ToothIcon({ tooth }: { tooth: Tooth }) {
+  return (
+    <View
+      accessibilityLabel={tooth.label}
+      style={[
+        styles.tooth,
+        {
+          left: tooth.x,
+          top: tooth.y,
+          backgroundColor: tooth.risk ? RISK_COLOR : '#FFFFFF',
+          borderColor: tooth.risk ? RISK_COLOR : '#E6E8F0',
+        },
+      ]}
+    >
+      {tooth.risk ? <View style={styles.riskDot} /> : null}
+    </View>
+  );
+}
 
 export default function HomeScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const theme = Colors[colorScheme];
-
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.contentContainer}>
-      {/* User Greeting */}
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
         <View>
-          <Typography variant="h2">안녕하세요, 사용자님!</Typography>
-          <Typography color="secondary">오늘도 건강한 미소를 만들어봐요.</Typography>
+          <Text style={styles.greeting}>안녕하세요, 사용자님</Text>
+          <Text style={styles.subGreeting}>오늘의 구강 상태를 확인해보세요</Text>
         </View>
-        <View style={[styles.avatarCircle, { backgroundColor: '#D1C4E9' }]}>
-          <Ionicons name="person" size={24} color="#fff" />
+        <View style={styles.dateBadge}>
+          <Ionicons name="calendar-outline" size={16} color={SCORE_COLOR} />
+          <Text style={styles.dateText}>{DATE}</Text>
         </View>
       </View>
 
-      {/* Main Score Card */}
-      <Card>
-        <Typography variant="h3" style={styles.cardTitle}>구강 상태 분석</Typography>
-        <Typography variant="caption" color="secondary" style={styles.cardDate}>최근 검사: 오늘 오전 10:30</Typography>
-        
-        <View style={styles.scoreCircleContainer}>
-          <View style={[styles.scoreCircle, { borderColor: theme.primary, backgroundColor: '#EEF2FF' }]}>
-            <Text style={[styles.scoreValue, { color: theme.primary }]}>78<Text style={styles.scoreMax}>/100</Text></Text>
-            <Typography variant="caption" color="accent" weight="bold" style={{ marginTop: 5 }}>지난주 대비 ▲ 12</Typography>
+      <View style={styles.mapCard}>
+        <View style={styles.mapHeader}>
+          <View>
+            <Text style={styles.mapTitle}>구강 상태 분석</Text>
+            <Text style={styles.mapSubtitle}>위험 치아 2개 감지</Text>
+          </View>
+          <View style={styles.legend}>
+            <View style={[styles.legendDot, { backgroundColor: RISK_COLOR }]} />
+            <Text style={styles.legendText}>위험</Text>
           </View>
         </View>
-      </Card>
 
-      {/* Quick Missions */}
-      <View style={styles.missionSection}>
-        <Typography variant="h3" style={styles.sectionTitle}>오늘의 관리 미션 (1/3)</Typography>
-        <Card style={styles.missionCardRow} noPadding>
-          <View style={styles.missionIcon}>
-            <Ionicons name="water-outline" size={24} color={theme.accent} />
+        <View style={styles.oralMap}>
+          <View style={[styles.arcGuide, styles.upperGuide]} />
+          <View style={[styles.arcGuide, styles.lowerGuide]} />
+
+          {[...upperTeeth, ...lowerTeeth].map((tooth) => (
+            <ToothIcon key={tooth.id} tooth={tooth} />
+          ))}
+
+          <View style={styles.scoreCircle}>
+            <Text style={styles.scoreLabel}>종합 점수</Text>
+            <Text style={styles.scoreText}>
+              {SCORE}
+              <Text style={styles.scoreMax}>/100</Text>
+            </Text>
+            <Text style={styles.scoreStatus}>주의 필요</Text>
           </View>
-          <View style={styles.missionTextContainer}>
-            <Typography weight="bold">치간칫솔로 꼼꼼히 관리하기</Typography>
-            <Typography variant="caption" color="accent">+10 포인트</Typography>
+        </View>
+
+        <View style={styles.riskPanel}>
+          <View style={styles.riskIcon}>
+            <Ionicons name="alert-circle" size={20} color={RISK_COLOR} />
           </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.icon} />
-        </Card>
+          <View style={styles.riskCopy}>
+            <Text style={styles.riskTitle}>상악 좌측 2번째, 3번째 치아</Text>
+            <Text style={styles.riskDescription}>치태 또는 잇몸 자극 가능성이 있어 관리가 필요합니다.</Text>
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -57,73 +117,204 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   contentContainer: {
-    padding: 20,
-    paddingBottom: 100, // For bottom tabs
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 112,
   },
   header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 30,
-    marginTop: 10,
+    marginBottom: 18,
   },
-  avatarCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+  greeting: {
+    color: '#1A1A2E',
+    fontSize: 24,
+    fontWeight: '800',
   },
-  cardTitle: {
-    marginBottom: 4,
-  },
-  cardDate: {
-    marginBottom: 20,
-  },
-  scoreCircleContainer: {
-    alignItems: 'center',
-  },
-  scoreCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  scoreValue: {
-    fontSize: 48,
-    fontWeight: 'bold',
-  },
-  scoreMax: {
-    fontSize: 20,
+  subGreeting: {
     color: '#6B7280',
+    fontSize: 14,
+    marginTop: 6,
   },
-  missionSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    marginBottom: 15,
-  },
-  missionCardRow: {
+  dateBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    marginBottom: 0,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 18,
+    backgroundColor: '#F4F6FF',
   },
-  missionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFE4EE',
-    justifyContent: 'center',
+  dateText: {
+    color: '#29324A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  mapCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: '#151936',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 5,
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  mapTitle: {
+    color: '#1A1A2E',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  mapSubtitle: {
+    color: '#8B90A0',
+    fontSize: 13,
+    marginTop: 5,
+  },
+  legend: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: '#FFF2F7',
   },
-  missionTextContainer: {
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    color: RISK_COLOR,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  oralMap: {
+    width: 280,
+    height: 284,
+    alignSelf: 'center',
+    marginTop: 6,
+  },
+  arcGuide: {
+    position: 'absolute',
+    left: 31,
+    width: 218,
+    height: 110,
+    borderWidth: 10,
+    borderColor: '#F3F5FA',
+  },
+  upperGuide: {
+    top: 10,
+    borderBottomWidth: 0,
+    borderTopLeftRadius: 120,
+    borderTopRightRadius: 120,
+  },
+  lowerGuide: {
+    bottom: 8,
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 120,
+    borderBottomRightRadius: 120,
+  },
+  tooth: {
+    position: 'absolute',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    shadowColor: '#1F2440',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  riskDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.95,
+  },
+  scoreCircle: {
+    position: 'absolute',
+    left: 70,
+    top: 82,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 8,
+    borderColor: '#FFB7CF',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  scoreLabel: {
+    color: '#8B90A0',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  scoreText: {
+    color: SCORE_COLOR,
+    fontSize: 42,
+    fontWeight: '900',
+  },
+  scoreMax: {
+    color: '#7B8194',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  scoreStatus: {
+    color: RISK_COLOR,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 3,
+  },
+  riskPanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#FFF2F7',
+  },
+  riskIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  riskCopy: {
     flex: 1,
+  },
+  riskTitle: {
+    color: '#1A1A2E',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  riskDescription: {
+    color: '#6B7280',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 3,
   },
 });
