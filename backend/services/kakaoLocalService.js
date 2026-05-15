@@ -22,9 +22,9 @@ function normalizeDentist(document) {
   };
 }
 
-async function searchNearbyDentists({ latitude, longitude, radius = 3000, size = 15 }) {
+async function searchNearbyDentists({ latitude, longitude, radius = 3000, size = 15, query = '치과' }) {
   const url = new URL(KAKAO_LOCAL_SEARCH_URL);
-  url.searchParams.set('query', '치과');
+  url.searchParams.set('query', query.trim() || '치과');
   url.searchParams.set('x', String(longitude));
   url.searchParams.set('y', String(latitude));
   url.searchParams.set('radius', String(radius));
@@ -40,7 +40,7 @@ async function searchNearbyDentists({ latitude, longitude, radius = 3000, size =
   const payload = await response.json();
 
   if (!response.ok) {
-    const message = payload?.message || payload?.error || 'Kakao Local API request failed.';
+    const message = payload?.message || payload?.error || '카카오 장소 검색 API 요청에 실패했습니다.';
     throw new Error(message);
   }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -54,62 +55,74 @@ function formatDistance(distance: number | null) {
 
 export default function DentistMapScreen() {
   const router = useRouter();
+  const webViewRef = useRef<WebView>(null);
   const [location, setLocation] = useState<UserLocation | null>(null);
   const [dentists, setDentists] = useState<Dentist[]>([]);
   const [selectedDentist, setSelectedDentist] = useState<Dentist | null>(null);
+  const [searchQuery, setSearchQuery] = useState('치과');
+  const [activeQuery, setActiveQuery] = useState('치과');
+  const [isPickingLocation, setIsPickingLocation] = useState(false);
+  const [mapFocus, setMapFocus] = useState<'me' | 'results'>('me');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const loadDentists = useCallback(async () => {
+  const loadDentists = useCallback(async (nextQuery = searchQuery, nextLocation?: UserLocation) => {
     setIsLoading(true);
     setErrorMessage('');
 
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
+      let currentLocation = nextLocation;
 
-      if (permission.status !== 'granted') {
-        setErrorMessage('Location permission is required. Allow access and try again.');
-        return;
+      if (!currentLocation) {
+        const permission = await Location.requestForegroundPermissionsAsync();
+
+        if (permission.status !== 'granted') {
+          setErrorMessage('위치 권한이 필요합니다. 권한을 허용한 뒤 다시 시도해 주세요.');
+          return;
+        }
+
+        const current = await Location.getCurrentPositionAsync({});
+        currentLocation = {
+          latitude: current.coords.latitude,
+          longitude: current.coords.longitude,
+        };
       }
 
-      const current = await Location.getCurrentPositionAsync({});
-      const currentLocation = {
-        latitude: current.coords.latitude,
-        longitude: current.coords.longitude,
-      };
-
       const dentistsResponse = await fetch(
-        `${API_ORIGIN}/api/dentists?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&radius=3000`,
+        `${API_ORIGIN}/api/dentists?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&radius=3000&query=${encodeURIComponent(nextQuery)}`,
       );
       const dentistsPayload = await dentistsResponse.json();
 
       if (!dentistsResponse.ok) {
-        throw new Error(dentistsPayload?.detail || dentistsPayload?.error || 'Failed to load nearby dentists.');
+        throw new Error(dentistsPayload?.detail || dentistsPayload?.error || '주변 치과를 불러오지 못했습니다.');
       }
 
       const nextDentists = Array.isArray(dentistsPayload.dentists) ? dentistsPayload.dentists : [];
       setLocation(currentLocation);
       setDentists(nextDentists);
       setSelectedDentist(nextDentists[0] || null);
+      setActiveQuery(nextQuery);
+      setMapFocus('me');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to search nearby dentists.';
+      const message = error instanceof Error ? error.message : '주변 치과 검색 중 문제가 발생했습니다.';
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [searchQuery]);
 
   useEffect(() => {
-    loadDentists();
-  }, [loadDentists]);
+    loadDentists('치과');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const mapUrl = useMemo(() => {
     if (!location) {
       return '';
     }
 
-    return `${API_ORIGIN}/map/dentists?lat=${location.latitude}&lng=${location.longitude}&radius=3000`;
-  }, [location]);
+    return `${API_ORIGIN}/map/dentists?lat=${location.latitude}&lng=${location.longitude}&radius=3000&query=${encodeURIComponent(activeQuery)}&focus=${mapFocus}`;
+  }, [activeQuery, location, mapFocus]);
 
   const handleMessage = (event: { nativeEvent: { data: string } }) => {
     try {
@@ -117,6 +130,16 @@ export default function DentistMapScreen() {
 
       if (payload.type === 'dentist') {
         setSelectedDentist(payload.dentist);
+      }
+
+      if (payload.type === 'mapClick' && isPickingLocation) {
+        const nextLocation = {
+          latitude: Number(payload.latitude),
+          longitude: Number(payload.longitude),
+        };
+
+        setIsPickingLocation(false);
+        loadDentists(activeQuery, nextLocation);
       }
     } catch {
       // Ignore non-map messages.
@@ -135,11 +158,34 @@ export default function DentistMapScreen() {
     }
   };
 
+  const selectDentist = (dentist: Dentist) => {
+    setSelectedDentist(dentist);
+    webViewRef.current?.postMessage(
+      JSON.stringify({
+        type: 'selectDentist',
+        dentistId: dentist.id,
+      }),
+    );
+  };
+
+  const handleSearch = () => {
+    loadDentists(searchQuery.trim() || '치과', location || undefined);
+  };
+
+  const handleMyLocation = () => {
+    setIsPickingLocation(false);
+    loadDentists(activeQuery);
+  };
+
+  const toggleLocationPicking = () => {
+    setIsPickingLocation((current) => !current);
+  };
+
   if (isLoading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#3B5BFF" />
-        <Text style={styles.loadingText}>Finding nearby dentists</Text>
+        <Text style={styles.loadingText}>주변 치과를 찾는 중입니다</Text>
       </View>
     );
   }
@@ -148,13 +194,13 @@ export default function DentistMapScreen() {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="location-outline" size={42} color="#FF6B9D" />
-        <Text style={styles.errorTitle}>Map unavailable</Text>
+        <Text style={styles.errorTitle}>지도를 불러올 수 없습니다</Text>
         <Text style={styles.errorText}>{errorMessage}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={loadDentists}>
-          <Text style={styles.primaryButtonText}>Retry</Text>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => loadDentists(activeQuery)}>
+          <Text style={styles.primaryButtonText}>다시 시도</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.textButton} onPress={() => router.back()}>
-          <Text style={styles.textButtonText}>Go back</Text>
+          <Text style={styles.textButtonText}>돌아가기</Text>
         </TouchableOpacity>
       </View>
     );
@@ -167,17 +213,34 @@ export default function DentistMapScreen() {
           <Ionicons name="chevron-back" size={24} color="#1A1A2E" />
         </TouchableOpacity>
         <View style={styles.headerCopy}>
-          <Text style={styles.title}>Nearby Dentists</Text>
-          <Text style={styles.subtitle}>Within 3km of your location</Text>
+          <Text style={styles.title}>주변 치과 찾기</Text>
+          <Text style={styles.subtitle}>설정한 위치 기준 3km 이내</Text>
         </View>
-        <TouchableOpacity style={styles.iconButton} onPress={loadDentists}>
+        <TouchableOpacity style={styles.iconButton} onPress={handleMyLocation}>
           <Ionicons name="refresh" size={21} color="#1A1A2E" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={18} color="#8B90A0" />
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+          placeholder="치과명 또는 지역 검색"
+          placeholderTextColor="#9CA3AF"
+          style={styles.searchInput}
+        />
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Text style={styles.searchButtonText}>검색</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.mapContainer}>
         {mapUrl ? (
           <WebView
+            ref={webViewRef}
             originWhitelist={['*']}
             source={{ uri: mapUrl }}
             javaScriptEnabled
@@ -186,6 +249,24 @@ export default function DentistMapScreen() {
             onMessage={handleMessage}
             style={styles.webView}
           />
+        ) : null}
+        <TouchableOpacity style={styles.myLocationButton} onPress={handleMyLocation}>
+          <Ionicons name="locate" size={18} color="#3B5BFF" />
+          <Text style={styles.myLocationText}>내 위치</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.pickLocationButton, isPickingLocation && styles.pickLocationButtonActive]}
+          onPress={toggleLocationPicking}
+        >
+          <Ionicons name="pin-outline" size={18} color={isPickingLocation ? '#FFFFFF' : '#3B5BFF'} />
+          <Text style={[styles.pickLocationText, isPickingLocation && styles.pickLocationTextActive]}>
+            위치 설정
+          </Text>
+        </TouchableOpacity>
+        {isPickingLocation ? (
+          <View style={styles.pickHint}>
+            <Text style={styles.pickHintText}>지도에서 기준 위치를 눌러주세요</Text>
+          </View>
         ) : null}
       </View>
 
@@ -204,7 +285,7 @@ export default function DentistMapScreen() {
               </View>
             </View>
             <Text style={styles.address} numberOfLines={2}>
-              {selectedDentist.address || 'No address available'}
+              {selectedDentist.address || '주소 정보 없음'}
             </Text>
             <View style={styles.actions}>
               <TouchableOpacity
@@ -213,11 +294,11 @@ export default function DentistMapScreen() {
                 onPress={() => callDentist(selectedDentist.phone)}
               >
                 <Ionicons name="call-outline" size={18} color="#3B5BFF" />
-                <Text style={styles.actionButtonText}>Call</Text>
+                <Text style={styles.actionButtonText}>전화</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={() => openPlace(selectedDentist.placeUrl)}>
                 <Ionicons name="navigate-outline" size={18} color="#3B5BFF" />
-                <Text style={styles.actionButtonText}>Details</Text>
+                <Text style={styles.actionButtonText}>상세보기</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -231,7 +312,7 @@ export default function DentistMapScreen() {
               <Pressable
                 key={dentist.id}
                 style={[styles.dentistChip, selected && styles.selectedChip]}
-                onPress={() => setSelectedDentist(dentist)}
+                onPress={() => selectDentist(dentist)}
               >
                 <Text style={[styles.chipName, selected && styles.selectedChipName]} numberOfLines={1}>
                   {dentist.name}
@@ -315,6 +396,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  searchBar: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF0F5',
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 38,
+    color: '#1A1A2E',
+    fontSize: 15,
+    fontWeight: '800',
+    paddingHorizontal: 4,
+    paddingVertical: 0,
+  },
+  searchButton: {
+    minHeight: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    backgroundColor: '#3B5BFF',
+    paddingHorizontal: 14,
+  },
+  searchButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
   mapContainer: {
     flex: 1,
     overflow: 'hidden',
@@ -323,6 +437,73 @@ const styles = StyleSheet.create({
   webView: {
     flex: 1,
     backgroundColor: '#EDEFF8',
+  },
+  myLocationButton: {
+    position: 'absolute',
+    left: 16,
+    top: 16,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 13,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  myLocationText: {
+    color: '#3B5BFF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  pickLocationButton: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 13,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  pickLocationButtonActive: {
+    backgroundColor: '#3B5BFF',
+  },
+  pickLocationText: {
+    color: '#3B5BFF',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  pickLocationTextActive: {
+    color: '#FFFFFF',
+  },
+  pickHint: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 64,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(26, 26, 46, 0.86)',
+    paddingHorizontal: 14,
+  },
+  pickHintText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
   },
   sheet: {
     paddingHorizontal: 16,
