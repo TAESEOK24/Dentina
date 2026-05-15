@@ -122,6 +122,14 @@ export default function HomeScreen() {
         <Ionicons name="analytics-outline" size={20} color="#FFFFFF" />
         <Text style={styles.compareButtonText}>비교 분석 보기</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        activeOpacity={0.84}
+        style={styles.dentistButton}
+        onPress={() => router.push('/dentist-map' as never)}
+      >
+        <Ionicons name="location-outline" size={20} color={SCORE_COLOR} />
+        <Text style={styles.dentistButtonText}>주변 치과 찾기</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -346,6 +354,23 @@ const styles = StyleSheet.create({
   },
   compareButtonText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  dentistButton: {
+    minHeight: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#DDE7FF',
+    backgroundColor: '#EEF3FF',
+  },
+  dentistButtonText: {
+    color: SCORE_COLOR,
     fontSize: 16,
     fontWeight: '900',
   },
