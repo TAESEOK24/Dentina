@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TOTAL_SCORE = 78;
@@ -119,6 +120,7 @@ function OralMap({ activeTab }: { activeTab: MapTab }) {
 export default function ResultScreen() {
   const [activeTab, setActiveTab] = useState<MapTab>('상악');
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
@@ -184,6 +186,17 @@ export default function ResultScreen() {
             <Text style={styles.pointText}>+10P</Text>
           </View>
         </View>
+
+        <Pressable style={styles.dentistButton} onPress={() => router.push('/dentist-map' as never)}>
+          <View style={styles.dentistButtonIcon}>
+            <Ionicons name="location" size={22} color="#FFFFFF" />
+          </View>
+          <View style={styles.dentistButtonCopy}>
+            <Text style={styles.dentistButtonTitle}>주변 치과 찾기</Text>
+            <Text style={styles.dentistButtonText}>현재 위치 기준 가까운 치과를 지도에서 확인해요</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color={SCORE_COLOR} />
+        </Pressable>
       </ScrollView>
 
       <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -419,6 +432,42 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 14,
     elevation: 3,
+  },
+  dentistButton: {
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#DDE7FF',
+    backgroundColor: '#EEF3FF',
+  },
+  dentistButtonIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: SCORE_COLOR,
+  },
+  dentistButtonCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  dentistButtonTitle: {
+    color: TEXT_PRIMARY,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  dentistButtonText: {
+    color: TEXT_SECONDARY,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 3,
+    fontWeight: '700',
   },
   missionIcon: {
     width: 42,
