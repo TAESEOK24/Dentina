@@ -52,126 +52,10 @@ function formatDistance(distance: number | null) {
   return distance >= 1000 ? `${(distance / 1000).toFixed(1)}km` : `${distance}m`;
 }
 
-function createMapHtml({
-  javascriptKey,
-  location,
-  dentists,
-}: {
-  javascriptKey: string;
-  location: UserLocation;
-  dentists: Dentist[];
-}) {
-  const safeDentists = JSON.stringify(dentists).replace(/</g, '\\u003c');
-
-  return `
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <style>
-      html, body, #map { width: 100%; height: 100%; margin: 0; padding: 0; }
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      .label {
-        min-width: 128px;
-        transform: translateY(-8px);
-        padding: 8px 10px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 107, 157, 0.28);
-        background: #fff;
-        color: #1a1a2e;
-        box-shadow: 0 8px 18px rgba(21, 25, 54, 0.14);
-        font-size: 12px;
-        font-weight: 800;
-        line-height: 1.35;
-        white-space: nowrap;
-      }
-      .label span { display: block; margin-top: 2px; color: #727789; font-size: 11px; font-weight: 700; }
-      .current {
-        width: 18px;
-        height: 18px;
-        border: 4px solid #fff;
-        border-radius: 50%;
-        background: #3b5bff;
-        box-shadow: 0 0 0 7px rgba(59, 91, 255, 0.18), 0 4px 12px rgba(0,0,0,0.18);
-      }
-    </style>
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=${javascriptKey}&autoload=false"></script>
-  </head>
-  <body>
-    <div id="map"></div>
-    <script>
-      const dentists = ${safeDentists};
-      const userLocation = { latitude: ${location.latitude}, longitude: ${location.longitude} };
-
-      function escapeHtml(value) {
-        return String(value || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-      }
-
-      function formatDistance(distance) {
-        if (!distance) return '';
-        return distance >= 1000 ? (distance / 1000).toFixed(1) + 'km' : distance + 'm';
-      }
-
-      function postDentist(dentist) {
-        window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'dentist',
-          dentist: dentist
-        }));
-      }
-
-      kakao.maps.load(function () {
-        const center = new kakao.maps.LatLng(userLocation.latitude, userLocation.longitude);
-        const map = new kakao.maps.Map(document.getElementById('map'), { center: center, level: 4 });
-        const bounds = new kakao.maps.LatLngBounds();
-        bounds.extend(center);
-
-        new kakao.maps.CustomOverlay({
-          position: center,
-          content: '<div class="current"></div>',
-          yAnchor: 0.5,
-          xAnchor: 0.5,
-          map: map
-        });
-
-        dentists.forEach(function (dentist) {
-          const position = new kakao.maps.LatLng(dentist.latitude, dentist.longitude);
-          const marker = new kakao.maps.Marker({ position: position, map: map });
-          const content = '<button class="label" type="button">' +
-            escapeHtml(dentist.name) +
-            '<span>' + escapeHtml(formatDistance(dentist.distance)) + '</span></button>';
-          const overlay = new kakao.maps.CustomOverlay({
-            position: position,
-            content: content,
-            yAnchor: 1.55
-          });
-
-          bounds.extend(position);
-          kakao.maps.event.addListener(marker, 'click', function () {
-            overlay.setMap(map);
-            postDentist(dentist);
-          });
-        });
-
-        if (dentists.length > 0) {
-          map.setBounds(bounds);
-        }
-      });
-    </script>
-  </body>
-</html>`;
-}
-
 export default function DentistMapScreen() {
   const router = useRouter();
   const [location, setLocation] = useState<UserLocation | null>(null);
   const [dentists, setDentists] = useState<Dentist[]>([]);
-  const [javascriptKey, setJavascriptKey] = useState('');
   const [selectedDentist, setSelectedDentist] = useState<Dentist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -194,17 +78,10 @@ export default function DentistMapScreen() {
         longitude: current.coords.longitude,
       };
 
-      const [configResponse, dentistsResponse] = await Promise.all([
-        fetch(`${API_ORIGIN}/api/config/kakao-map`),
-        fetch(`${API_ORIGIN}/api/dentists?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&radius=3000`),
-      ]);
-
-      const configPayload = await configResponse.json();
+      const dentistsResponse = await fetch(
+        `${API_ORIGIN}/api/dentists?lat=${currentLocation.latitude}&lng=${currentLocation.longitude}&radius=3000`,
+      );
       const dentistsPayload = await dentistsResponse.json();
-
-      if (!configResponse.ok) {
-        throw new Error(configPayload?.detail || configPayload?.error || 'Failed to load Kakao map config.');
-      }
 
       if (!dentistsResponse.ok) {
         throw new Error(dentistsPayload?.detail || dentistsPayload?.error || 'Failed to load nearby dentists.');
@@ -212,7 +89,6 @@ export default function DentistMapScreen() {
 
       const nextDentists = Array.isArray(dentistsPayload.dentists) ? dentistsPayload.dentists : [];
       setLocation(currentLocation);
-      setJavascriptKey(configPayload.javascriptKey);
       setDentists(nextDentists);
       setSelectedDentist(nextDentists[0] || null);
     } catch (error) {
@@ -227,13 +103,13 @@ export default function DentistMapScreen() {
     loadDentists();
   }, [loadDentists]);
 
-  const mapHtml = useMemo(() => {
-    if (!location || !javascriptKey) {
+  const mapUrl = useMemo(() => {
+    if (!location) {
       return '';
     }
 
-    return createMapHtml({ javascriptKey, location, dentists });
-  }, [dentists, javascriptKey, location]);
+    return `${API_ORIGIN}/map/dentists?lat=${location.latitude}&lng=${location.longitude}&radius=3000`;
+  }, [location]);
 
   const handleMessage = (event: { nativeEvent: { data: string } }) => {
     try {
@@ -300,12 +176,13 @@ export default function DentistMapScreen() {
       </View>
 
       <View style={styles.mapContainer}>
-        {mapHtml ? (
+        {mapUrl ? (
           <WebView
             originWhitelist={['*']}
-            source={{ html: mapHtml, baseUrl: API_ORIGIN }}
+            source={{ uri: mapUrl }}
             javaScriptEnabled
             domStorageEnabled
+            mixedContentMode="always"
             onMessage={handleMessage}
             style={styles.webView}
           />
