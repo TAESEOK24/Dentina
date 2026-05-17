@@ -48,25 +48,26 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: '구강 분석',
+          title: '홈',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics-outline" size={size + 1} color={color} />
+            <Ionicons name="home-outline" size={size + 1} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: '알림 기간',
+          title: '분석',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="notifications-outline" size={size + 1} color={color} />
+            <Ionicons name="stats-chart-outline" size={size + 1} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="camera_dummy"
         options={{
-          title: '구강 맵',
+          title: '',
+          tabBarLabel: () => null,
           tabBarIcon: () => (
             <View style={styles.cameraButton}>
               <Ionicons name="camera" size={34} color="#FFFFFF" />
@@ -83,18 +84,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="mission"
         options={{
-          title: '동영상 관리',
+          title: '미션',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="play-circle-outline" size={size + 1} color={color} />
+            <Ionicons name="clipboard-outline" size={size + 1} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: '리포트',
+          title: '마이',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text-outline" size={size + 1} color={color} />
+            <Ionicons name="person-outline" size={size + 1} color={color} />
           ),
         }}
       />

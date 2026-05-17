@@ -20,11 +20,11 @@ const comparisonItems = [
 ] as const;
 
 const bottomTabs = [
-  { label: '구강 분석', icon: 'analytics-outline', route: '/' },
-  { label: '알림 기간', icon: 'notifications-outline', route: '/history' },
-  { label: '구강 맵', icon: 'camera', route: '/camera' },
-  { label: '동영상 관리', icon: 'play-circle-outline', route: '/mission' },
-  { label: '리포트', icon: 'document-text-outline', route: '/profile' },
+  { label: '홈', icon: 'home-outline', route: '/' },
+  { label: '분석', icon: 'stats-chart-outline', route: '/history' },
+  { label: '', icon: 'camera', route: '/camera' },
+  { label: '미션', icon: 'clipboard-outline', route: '/mission' },
+  { label: '마이', icon: 'person-outline', route: '/profile' },
 ] as const;
 
 export default function CompareScreen() {

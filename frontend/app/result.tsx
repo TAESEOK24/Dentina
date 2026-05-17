@@ -51,11 +51,11 @@ const lowerTeeth: Tooth[] = [
 ];
 
 const bottomTabs = [
-  { label: '구강 분석', icon: 'analytics-outline' },
-  { label: '알림 기간', icon: 'notifications-outline' },
-  { label: '구강 맵', icon: 'camera' },
-  { label: '동영 관리', icon: 'play-circle-outline' },
-  { label: '리포트', icon: 'document-text-outline' },
+  { label: '홈', icon: 'home-outline' },
+  { label: '분석', icon: 'stats-chart-outline' },
+  { label: '', icon: 'camera' },
+  { label: '미션', icon: 'clipboard-outline' },
+  { label: '마이', icon: 'person-outline' },
 ] as const;
 
 function ToothIcon({ tooth, dimmed }: { tooth: Tooth; dimmed: boolean }) {
