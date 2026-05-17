@@ -23,7 +23,7 @@ const getApiUrl = () => {
   const hostUri = expoConfig?.hostUri || manifest2?.extra?.expoClient?.hostUri || manifest?.debuggerHost;
   const host = hostUri?.split(':')[0];
 
-  return `http://${host || '192.168.1.6'}:3000/api/analyze`;
+  return `http://${host || '192.168.0.98'}:3000/api/analyze`;
 };
 
 const API_URL = getApiUrl();

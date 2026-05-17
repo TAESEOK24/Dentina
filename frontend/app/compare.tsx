@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { StackedBarChart } from 'react-native-chart-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,17 +16,20 @@ const comparisonItems = [
   { label: '치태', previous: 65, improvement: 20 },
   { label: '잇몸', previous: 60, improvement: 10 },
   { label: '착색', previous: 55, improvement: 15 },
-  { label: '구강 청결', previous: 70, improvement: 20 },
+  { label: '구강 청결도', previous: 70, improvement: 20 },
 ] as const;
 
-const analysisNotes = [
-  { title: '위험 치아 감소', value: '2개', icon: 'shield-checkmark-outline' },
-  { title: '점수 상승', value: '+12', icon: 'trending-up-outline' },
-  { title: '관리 연속일', value: '7일', icon: 'calendar-outline' },
+const bottomTabs = [
+  { label: '홈', icon: 'home-outline', route: '/' },
+  { label: '분석', icon: 'stats-chart-outline', route: '/history' },
+  { label: '', icon: 'camera', route: '/camera' },
+  { label: '미션', icon: 'clipboard-outline', route: '/mission' },
+  { label: '마이', icon: 'person-outline', route: '/profile' },
 ] as const;
 
-export default function AnalysisScreen() {
+export default function CompareScreen() {
   const [activeDate, setActiveDate] = useState<'current' | 'previous'>('current');
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const chartWidth = Math.min(width - 40, 430);
@@ -43,42 +47,51 @@ export default function AnalysisScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) + 28 }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>비교 분석</Text>
-          <Text style={styles.subtitle}>최근 검사와 이전 검사의 변화를 확인해요</Text>
-        </View>
-        <View style={styles.scorePill}>
-          <Ionicons name="analytics-outline" size={16} color={theme.primary} />
-          <Text style={styles.scorePillText}>{CURRENT_SCORE}점</Text>
-        </View>
+    <View style={styles.container}>
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, 14) + 8 }]}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="뒤로가기"
+          activeOpacity={0.74}
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="#1A1A2E" />
+        </TouchableOpacity>
+        <Text style={styles.topTitle}>구강 상태 분석</Text>
+        <View style={styles.topSpacer} />
       </View>
 
-      <View style={styles.dateToggle} accessibilityRole="tablist">
-        <TouchableOpacity
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeDate === 'current' }}
-          activeOpacity={0.82}
-          onPress={() => setActiveDate('current')}
-          style={[styles.dateButton, activeDate === 'current' && styles.activeDateButton]}
-        >
-          <Text style={[styles.dateText, activeDate === 'current' && styles.activeDateText]}>{CURRENT_DATE}</Text>
-        </TouchableOpacity>
-        <Text style={styles.vsText}>VS</Text>
-        <TouchableOpacity
-          accessibilityRole="tab"
-          accessibilityState={{ selected: activeDate === 'previous' }}
-          activeOpacity={0.82}
-          onPress={() => setActiveDate('previous')}
-          style={[styles.dateButton, activeDate === 'previous' && styles.activeDateButton]}
-        >
-          <Text style={[styles.dateText, activeDate === 'previous' && styles.activeDateText]}>{PREVIOUS_DATE}</Text>
-        </TouchableOpacity>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, 16) + 92 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+        <View style={styles.dateToggle} accessibilityRole="tablist">
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeDate === 'current' }}
+            activeOpacity={0.82}
+            onPress={() => setActiveDate('current')}
+            style={[styles.dateButton, activeDate === 'current' && styles.activeDateButton]}
+          >
+            <Text style={[styles.dateText, activeDate === 'current' && styles.activeDateText]}>{CURRENT_DATE}</Text>
+          </TouchableOpacity>
+          <Text style={styles.vsText}>VS</Text>
+          <TouchableOpacity
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activeDate === 'previous' }}
+            activeOpacity={0.82}
+            onPress={() => setActiveDate('previous')}
+            style={[styles.dateButton, activeDate === 'previous' && styles.activeDateButton]}
+          >
+            <Text style={[styles.dateText, activeDate === 'previous' && styles.activeDateText]}>{PREVIOUS_DATE}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.scoreCard}>
@@ -96,16 +109,6 @@ export default function AnalysisScreen() {
           <Text style={styles.scoreLabel}>현재 점수</Text>
           <Text style={styles.currentScore}>{CURRENT_SCORE}</Text>
         </View>
-      </View>
-
-      <View style={styles.noteGrid}>
-        {analysisNotes.map((note) => (
-          <View key={note.title} style={styles.noteCard}>
-            <Ionicons name={note.icon} size={19} color={theme.primary} />
-            <Text style={styles.noteValue}>{note.value}</Text>
-            <Text style={styles.noteTitle}>{note.title}</Text>
-          </View>
-        ))}
       </View>
 
       <View style={styles.chartCard}>
@@ -170,11 +173,49 @@ export default function AnalysisScreen() {
           <Ionicons name="sparkles" size={22} color={theme.primary} />
         </View>
         <View style={styles.summaryCopy}>
-          <Text style={styles.summaryTitle}>전체적으로 개선되고 있어요</Text>
-          <Text style={styles.summaryText}>치태와 구강 청결 점수가 가장 크게 올랐어요. 현재 루틴을 유지하면 다음 검사에서도 안정적인 점수를 기대할 수 있어요.</Text>
+          <Text style={styles.summaryTitle}>전반적으로 개선되었어요!</Text>
+          <Text style={styles.summaryText}>꾸준한 관리로 더 건강한 구강을 유지해요.</Text>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+        {bottomTabs.map((tab, index) => {
+          const active = index === 0;
+          const center = index === 2;
+
+          return (
+            <TouchableOpacity
+              key={tab.label}
+              activeOpacity={0.78}
+              style={styles.bottomItem}
+              onPress={() => {
+                if (tab.route === '/camera') {
+                  router.push('/camera');
+                  return;
+                }
+
+                router.replace(tab.route);
+              }}
+            >
+              <View style={[styles.bottomIconWrap, center && styles.bottomCenterIcon]}>
+                <Ionicons
+                  name={tab.icon}
+                  size={center ? 34 : 24}
+                  color={center ? '#FFFFFF' : active ? Colors.light.primary : '#9CA3AF'}
+                />
+              </View>
+              <Text
+                style={[styles.bottomLabel, active && styles.bottomLabelActive, center && styles.bottomCenterLabel]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -183,43 +224,42 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F9FC',
   },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 18,
+  scroll: {
+    flex: 1,
   },
-  header: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
-  },
-  title: {
-    color: '#1A1A2E',
-    fontSize: 24,
-    fontWeight: '900',
-  },
-  subtitle: {
-    color: '#747C8F',
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  scorePill: {
-    minHeight: 34,
+  topBar: {
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    borderRadius: 17,
-    backgroundColor: '#EEF3FF',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+    backgroundColor: '#F7F9FC',
   },
-  scorePillText: {
-    color: Colors.light.primary,
-    fontSize: 13,
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topTitle: {
+    flex: 1,
+    color: '#1A1A2E',
+    fontSize: 17,
     fontWeight: '900',
+    textAlign: 'center',
+  },
+  topSpacer: {
+    width: 42,
+    height: 42,
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  header: {
+    marginBottom: 16,
   },
   dateToggle: {
     minHeight: 52,
@@ -229,7 +269,6 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 18,
     backgroundColor: '#EDEFF8',
-    marginBottom: 16,
   },
   dateButton: {
     flex: 1,
@@ -313,35 +352,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '900',
     marginTop: 1,
-  },
-  noteGrid: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
-  },
-  noteCard: {
-    flex: 1,
-    minHeight: 96,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EEF0F5',
-  },
-  noteValue: {
-    color: '#1A1A2E',
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 7,
-  },
-  noteTitle: {
-    color: '#747C8F',
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 3,
-    textAlign: 'center',
   },
   chartCard: {
     borderRadius: 24,
@@ -458,5 +468,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     fontWeight: '700',
+  },
+  bottomNav: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    minHeight: 72,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-around',
+    paddingTop: 8,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#EEF0F5',
+    shadowColor: '#111827',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  bottomItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  bottomIconWrap: {
+    width: 34,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomCenterIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FF6B9D',
+    marginTop: -34,
+    shadowColor: '#FF6B9D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  bottomLabel: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontWeight: '800',
+    maxWidth: 74,
+  },
+  bottomLabelActive: {
+    color: Colors.light.primary,
+  },
+  bottomCenterLabel: {
+    marginTop: -4,
   },
 });

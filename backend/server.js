@@ -3,6 +3,9 @@ const cors = require('cors');
 require('dotenv').config();
 
 const analyzeRoute = require('./routes/analyze');
+const dentistsRoute = require('./routes/dentists');
+const configRoute = require('./routes/config');
+const mapRoute = require('./routes/map');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +24,9 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/analyze', analyzeRoute);
+app.use('/api/dentists', dentistsRoute);
+app.use('/api/config', configRoute);
+app.use('/map', mapRoute);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
